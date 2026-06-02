@@ -1,0 +1,5 @@
+torch>=2.0
+transformers>=4.45.0
+accelerate
+tensorboard
+pyyaml
