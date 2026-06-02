@@ -1,0 +1,18 @@
+# Auto-detect text files, ensure LF line endings
+* text=auto
+
+# Python
+*.py text diff=python
+*.yaml text
+*.yml text
+*.md text
+*.txt text
+*.json text
+*.cfg text
+*.toml text
+
+# Binary
+*.pt binary
+*.safetensors binary
+*.bin binary
+*.pkl binary

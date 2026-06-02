@@ -1,0 +1,95 @@
+# RDT-Fixed-16 Training Configuration
+# See prototype doc §12 for recommended values.
+
+model:
+  name: RDT-Fixed-16
+  base_model: Qwen3.5-9B-Base
+  base_model_path: /data/model/Qwen/Qwen3___5-9B-Base
+  max_iters: 16
+  aggregation: last4_mean
+  bridge_type: mlp_step
+  bridge_alpha: 0.2
+  step_embedding_dim: 32
+
+# Layer split for 32-layer Qwen3.5-9B
+layer_split:
+  prefix_start: 0
+  prefix_end: 12
+  core_start: 12
+  core_end: 28
+  suffix_start: 28
+  suffix_end: 32
+
+trainable:
+  bridge: true
+  core_lora: true
+  suffix_lora: true
+  prefix: false
+  embedding: false
+  lm_head: false
+
+lora:
+  r: 64
+  alpha: 128
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - out_proj
+    - in_proj_qkv
+    - in_proj_z
+    - gate_proj
+    - up_proj
+    - down_proj
+
+# Phase 1: Bridge Warmup
+bridge_warmup:
+  progressive_k: [2, 4, 8, 16]
+  steps_per_stage: 50
+  bridge_lr: 2.0e-4
+  weight_decay: 0.01
+  max_grad_norm: 0.5
+  lambda_smooth: 0.0002
+
+# Phase 2: RDT-Fixed-16 SFT
+rdt_sft:
+  num_epochs: 3
+  batch_size_per_gpu: 1
+  gradient_accumulation_steps: 16
+  bridge_lr: 2.0e-4
+  lora_lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.05
+  max_grad_norm: 1.0
+  ce_weight: 1.0
+  kl_ref_weight: 0.1
+  smooth_weight: 0.0002
+
+# Phase 3: GRPO (future)
+grpo:
+  group_size: 4
+  beta: 0.02
+  # Reward weights (see prototype doc §7)
+  reward_weights:
+    R_diagnosis: 0.35
+    R_differential: 0.20
+    R_safety: 0.20
+    R_format: 0.10
+    R_evidence: 0.10
+    R_conciseness: 0.05
+    R_hallucination: -0.20
+    R_danger: -0.50
+
+optimization:
+  bf16: true
+  gradient_checkpointing: true
+
+data:
+  max_length: 2048
+  format: jsonl
+  difficulty_distribution:
+    easy: 0.3
+    medium: 0.4
+    hard: 0.3
